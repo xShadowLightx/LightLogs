@@ -4,6 +4,10 @@ LightLogs sends selected Paper server and supported plugin events to Discord cha
 
 > **Disclaimer:** LightLogs is not a replacement for or an alternative to DiscordSRV, and it is not associated with DiscordSRV or its developers. LightLogs is a lightweight solution for sending server logs to staff logging channels in Discord.
 
+## Support
+
+For help with LightLogs, join the [Development Hub Discord server](https://discord.gg/FMvSubmg3M).
+
 ## Features
 
 - Player chat, commands, joins, leaves, deaths, gamemode changes, and block/entity explosions
