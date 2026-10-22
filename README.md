@@ -28,8 +28,8 @@ This project builds two separate plugin jars:
 
 | Server | Java runtime for server | Gradle task | Output |
 | --- | --- | --- | --- |
-| Paper 1.21.11 | Java 21 | `gradle build` | `build/libs/LightLogs-1.0.0-paper-1.21.11.jar` |
-| Paper 26.3 | Java 25 | `gradle paper263Jar` | `build/libs/LightLogs-1.0.0-paper-26.3.jar` |
+| Paper 1.21.11 | Java 21 | `gradle build` | `build/libs/LightLogs-v-1.1.0-paper-1.21.11.jar` |
+| Paper 26.3 | Java 25 | `gradle paper263Jar` | `build/libs/LightLogs-v-1.1.0-paper-26.3.jar` |
 
 To build both jars, use `gradle buildAll` with JDK 21 and JDK 25 available to Gradle. Gradle 8 or later is required. Install only the jar matching the server in that server's `plugins` folder. The jars share a plugin name, so do not install both in one server.
 

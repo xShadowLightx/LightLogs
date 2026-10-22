@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "dev.lightlogs"
-version = "1.0.0"
+version = "v-1.1.0"
 
 repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
