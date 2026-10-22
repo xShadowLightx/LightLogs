@@ -3,7 +3,7 @@ version: '${version}'
 main: dev.lightlogs.LightLogsPlugin
 api-version: '${apiVersion}'
 description: Sends configurable Paper server event logs to Discord webhooks.
-author: LightLogs
+author: xShadowLightx
 commands:
   lightlogs:
     description: Reload LightLogs configuration.

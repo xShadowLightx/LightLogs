@@ -123,6 +123,5 @@ options:
   update-checker:
     enabled: true
     # GitHub owner/repository used for Releases > latest. Example: 'xShadowLightx/LightLogs'.
-    # Leave blank to disable update checks until the repository is published/configured.
-    repository: ''
+    repository: 'xShadowLightx/LightLogs'
 
