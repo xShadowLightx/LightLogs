@@ -1,5 +1,6 @@
 # Create one Discord webhook per channel at Server Settings > Integrations > Webhooks.
-# Paste the complete webhook URL here. Keep this file private; URLs grant posting access.
+# Paste one URL as a string, or use a YAML list to send the same log to multiple channels.
+# Keep this file private; webhook URLs grant posting access.
 # Use 'none' to explicitly disable a webhook. Blank context-specific URLs fall back to the global webhook.
 webhooks:
   # Final fallback for any log category without a configured destination.

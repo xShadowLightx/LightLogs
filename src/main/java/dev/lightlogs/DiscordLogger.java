@@ -9,6 +9,8 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,11 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
 final class DiscordLogger {
     private final JavaPlugin plugin;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-    private volatile Map<String, String> webhooks = Map.of();
-    private volatile Map<String, String> auraSkillWebhooks = Map.of();
-    private volatile Map<String, String> townyContextWebhooks = Map.of();
+    private volatile Map<String, List<String>> webhooks = Map.of();
+    private volatile Map<String, List<String>> auraSkillWebhooks = Map.of();
+    private volatile Map<String, List<String>> townyContextWebhooks = Map.of();
     private volatile Map<String, Boolean> townyContextEnabled = Map.of();
-    private volatile Map<String, String> realisticSeasonsContextWebhooks = Map.of();
+    private volatile Map<String, List<String>> realisticSeasonsContextWebhooks = Map.of();
     private final Set<String> pausedTargets = ConcurrentHashMap.newKeySet();
     private volatile boolean allPaused;
     private volatile boolean townyEnabled = true;
@@ -33,25 +35,25 @@ final class DiscordLogger {
     }
 
     void refresh() {
-        Map<String, String> configured = new ConcurrentHashMap<>();
+        Map<String, List<String>> configured = new ConcurrentHashMap<>();
         if (plugin.getConfig().isConfigurationSection("webhooks")) {
             for (String category : plugin.getConfig().getConfigurationSection("webhooks").getKeys(false)) {
                 String path = "webhooks." + category;
-                if (plugin.getConfig().isString(path)) configured.put(category, normalizeWebhookValue(plugin.getConfig().getString(path, "")));
+                if (plugin.getConfig().isString(path) || plugin.getConfig().isList(path)) configured.put(category, normalizeWebhookValues(path));
             }
         }
         webhooks = Map.copyOf(configured);
-        Map<String, String> skillConfigured = new ConcurrentHashMap<>();
+        Map<String, List<String>> skillConfigured = new ConcurrentHashMap<>();
         if (plugin.getConfig().isConfigurationSection("webhooks.auraskills-skills")) {
             for (String skillId : plugin.getConfig().getConfigurationSection("webhooks.auraskills-skills").getKeys(false)) {
-                skillConfigured.put(normalizeSkillId(skillId), normalizeWebhookValue(plugin.getConfig().getString("webhooks.auraskills-skills." + skillId, "")));
+                skillConfigured.put(normalizeSkillId(skillId), normalizeWebhookValues("webhooks.auraskills-skills." + skillId));
             }
         }
         auraSkillWebhooks = Map.copyOf(skillConfigured);
-        Map<String, String> townyUrls = new ConcurrentHashMap<>();
+        Map<String, List<String>> townyUrls = new ConcurrentHashMap<>();
         if (plugin.getConfig().isConfigurationSection("webhooks.towny-contexts")) {
             for (String context : plugin.getConfig().getConfigurationSection("webhooks.towny-contexts").getKeys(false)) {
-                townyUrls.put(context.toLowerCase(java.util.Locale.ROOT), normalizeWebhookValue(plugin.getConfig().getString("webhooks.towny-contexts." + context, "")));
+                townyUrls.put(context.toLowerCase(java.util.Locale.ROOT), normalizeWebhookValues("webhooks.towny-contexts." + context));
             }
         }
         townyContextWebhooks = Map.copyOf(townyUrls);
@@ -62,11 +64,11 @@ final class DiscordLogger {
             }
         }
         townyContextEnabled = Map.copyOf(townyToggles);
-        Map<String, String> seasonUrls = new ConcurrentHashMap<>();
+        Map<String, List<String>> seasonUrls = new ConcurrentHashMap<>();
         if (plugin.getConfig().isConfigurationSection("webhooks.realistic-seasons-contexts")) {
             for (String context : plugin.getConfig().getConfigurationSection("webhooks.realistic-seasons-contexts").getKeys(false)) {
-                seasonUrls.put(context.toLowerCase(java.util.Locale.ROOT), normalizeWebhookValue(
-                        plugin.getConfig().getString("webhooks.realistic-seasons-contexts." + context, "")));
+                seasonUrls.put(context.toLowerCase(java.util.Locale.ROOT), normalizeWebhookValues(
+                        "webhooks.realistic-seasons-contexts." + context));
             }
         }
         realisticSeasonsContextWebhooks = Map.copyOf(seasonUrls);
@@ -77,22 +79,22 @@ final class DiscordLogger {
 
     void send(String category, String message) {
         if (isPaused(category)) return;
-        String url = webhooks.getOrDefault(category, "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("global", "");
-        sendWebhook(url, category, message);
+        List<String> urls = webhooks.getOrDefault(category, List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("global", List.of());
+        sendWebhooks(urls, category, message);
     }
 
     void sendAuraSkill(String skillId, String skillName, String message) {
         String normalizedSkillId = normalizeSkillId(skillId);
         if (isPaused("auraskills", "auraskills." + normalizedSkillId)) return;
-        String url = auraSkillWebhooks.get(normalizedSkillId);
-        if (url == null || url.isEmpty()) url = auraSkillWebhooks.get(normalizeSkillId(skillName));
-        if ("none".equals(url)) return;
-        if (url == null || url.isEmpty()) url = webhooks.getOrDefault("auraskills", "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("global", "");
-        sendWebhook(url, "auraskills", message);
+        List<String> urls = auraSkillWebhooks.get(normalizedSkillId);
+        if (urls == null || urls.isEmpty()) urls = auraSkillWebhooks.get(normalizeSkillId(skillName));
+        if (isNone(urls)) return;
+        if (urls == null || urls.isEmpty()) urls = webhooks.getOrDefault("auraskills", List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("global", List.of());
+        sendWebhooks(urls, "auraskills", message);
     }
 
     void sendTowny(String context, String message) {
@@ -100,35 +102,35 @@ final class DiscordLogger {
         String normalized = context == null ? "" : context.trim().toLowerCase(java.util.Locale.ROOT);
         if (isPaused("towny", "towny." + normalized)) return;
         if (!townyContextEnabled.getOrDefault(normalized, true)) return;
-        String url = townyContextWebhooks.getOrDefault(normalized, "");
-        if ("none".equals(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("towny", "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("global", "");
-        sendWebhook(url, "towny-" + normalized, message);
+        List<String> urls = townyContextWebhooks.getOrDefault(normalized, List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("towny", List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("global", List.of());
+        sendWebhooks(urls, "towny-" + normalized, message);
     }
 
     void sendLuckPerms(String context, String legacyCategory, String message) {
         if (isPaused("luckperms", "luckperms." + context, legacyCategory)) return;
-        String url = webhooks.getOrDefault("luckperms-" + context, "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault(legacyCategory, "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("luckperms", "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("global", "");
-        sendWebhook(url, "luckperms-" + context, message);
+        List<String> urls = webhooks.getOrDefault("luckperms-" + context, List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault(legacyCategory, List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("luckperms", List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("global", List.of());
+        sendWebhooks(urls, "luckperms-" + context, message);
     }
 
     void sendRealisticSeasons(String context, String message) {
         String normalized = context == null ? "" : context.trim().toLowerCase(java.util.Locale.ROOT);
         if (isPaused("realistic-seasons", "realistic-seasons." + normalized)) return;
-        String url = realisticSeasonsContextWebhooks.getOrDefault(normalized, "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("realistic-seasons", "");
-        if ("none".equalsIgnoreCase(url)) return;
-        if (url.isEmpty()) url = webhooks.getOrDefault("global", "");
-        sendWebhook(url, "realistic-seasons-" + normalized, message);
+        List<String> urls = realisticSeasonsContextWebhooks.getOrDefault(normalized, List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("realistic-seasons", List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = webhooks.getOrDefault("global", List.of());
+        sendWebhooks(urls, "realistic-seasons-" + normalized, message);
     }
 
     void pause(String target) {
@@ -179,6 +181,10 @@ final class DiscordLogger {
         return target == null ? "" : target.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
+    private void sendWebhooks(List<String> urls, String category, String message) {
+        for (String url : urls) sendWebhook(url, category, message);
+    }
+
     private void sendWebhook(String url, String category, String message) {
         if (url.isEmpty() || "none".equalsIgnoreCase(url)) return;
         if (!url.startsWith("https://discord.com/api/webhooks/") && !url.startsWith("https://discordapp.com/api/webhooks/")) {
@@ -223,9 +229,20 @@ final class DiscordLogger {
         return skillId == null ? "" : skillId.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
-    private static String normalizeWebhookValue(String value) {
-        String normalized = value == null ? "" : value.trim();
-        return normalized.equalsIgnoreCase("none") ? "none" : normalized;
+    private List<String> normalizeWebhookValues(String path) {
+        List<String> values = plugin.getConfig().isList(path)
+                ? plugin.getConfig().getStringList(path)
+                : List.of(plugin.getConfig().getString(path, ""));
+        List<String> normalized = new ArrayList<>();
+        for (String value : values) {
+            String item = value == null ? "" : value.trim();
+            if (!item.isEmpty()) normalized.add(item.equalsIgnoreCase("none") ? "none" : item);
+        }
+        return List.copyOf(normalized);
+    }
+
+    private static boolean isNone(List<String> urls) {
+        return urls != null && urls.stream().anyMatch("none"::equalsIgnoreCase);
     }
 
     private static String jsonEscape(String value) {

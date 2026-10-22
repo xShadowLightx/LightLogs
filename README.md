@@ -46,11 +46,11 @@ Treat webhook URLs like passwords. Anyone who has a URL can post to its channel.
 
 ### URL value behavior
 
-- A valid Discord webhook URL selects a destination.
+- A valid Discord webhook URL selects a destination. A YAML list of URLs sends each log to every listed destination.
 - A blank top-level category URL falls back to `webhooks.global`.
 - A blank integration context URL falls back to that integration's base URL, then to `webhooks.global`.
 - `none` (case-insensitive) explicitly disables that route and stops fallback. For example, `webhooks.towny-contexts.wars: 'none'` suppresses Towny war logs even if a global Towny or global webhook is set.
-- Multiple categories may use the same webhook URL.
+- Multiple categories may use the same webhook URL. A route can also contain multiple URLs.
 - Only Discord webhook URLs beginning with `https://discord.com/api/webhooks/` or `https://discordapp.com/api/webhooks/` are accepted.
 
 ### Routing priority
@@ -64,6 +64,21 @@ Treat webhook URLs like passwords. Anyone who has a URL can post to its channel.
 | RealisticSeasons context | `webhooks.realistic-seasons-contexts.<context>` → `webhooks.realistic-seasons` → `webhooks.global` |
 
 If a route in this chain is set to `none`, the log is disabled there rather than continuing to a later destination. For example, `webhooks.luckperms-user-parents: 'none'` suppresses user parent changes without sending them to the legacy or global channel.
+
+To send a route to more than one Discord channel, put the webhook URLs in a YAML list. This works for standard categories, integration routes, and context-specific routes. For example:
+
+```yaml
+webhooks:
+  chat:
+    - 'https://discord.com/api/webhooks/CHAT_CHANNEL_ID/CHAT_TOKEN'
+    - 'https://discord.com/api/webhooks/ARCHIVE_CHANNEL_ID/ARCHIVE_TOKEN'
+  towny-contexts:
+    wars:
+      - 'https://discord.com/api/webhooks/TOWNY_WARS_ID/TOWNY_WARS_TOKEN'
+      - 'https://discord.com/api/webhooks/STAFF_AUDIT_ID/STAFF_AUDIT_TOKEN'
+```
+
+The existing single-string format remains supported. An empty list behaves like a blank route and uses its normal fallback. Use the single value `'none'` to disable a route; it stops fallback.
 
 ## Configuration reference
 
