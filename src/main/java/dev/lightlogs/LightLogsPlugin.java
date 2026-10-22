@@ -59,25 +59,27 @@ public final class LightLogsPlugin extends JavaPlugin implements Listener {
         var console = getServer().getConsoleSender();
         try (InputStream banner = getResource("startup-banner.txt")) {
             if (banner != null) {
-                new String(banner.readAllBytes(), StandardCharsets.UTF_8).lines().forEach(console::sendMessage);
+                new String(banner.readAllBytes(), StandardCharsets.UTF_8).lines()
+                        .map(line -> line.equals("----------------------------------------") ? "§8" + line : line)
+                        .forEach(console::sendMessage);
             } else {
                 getLogger().warning("Startup banner resource is missing.");
             }
         } catch (java.io.IOException exception) {
             getLogger().warning("Could not read startup banner: " + exception.getMessage());
         }
-        console.sendMessage("  ◆ LightLogs");
-        console.sendMessage("  Discord staff logging for Paper");
-        console.sendMessage("  Version: " + getDescription().getVersion());
+        console.sendMessage(" §b◆ LightLogs");
+        console.sendMessage(" §7Discord staff logging for Paper");
+        console.sendMessage(" §7Version: " + getDescription().getVersion());
         List<String> authors = getDescription().getAuthors();
-        console.sendMessage("  Author: " + (authors.isEmpty() ? "LightLogs" : String.join(", ", authors)));
-        console.sendMessage("----------------------------------------");
-        console.sendMessage("  ✔ LightLogs is ready");
-        console.sendMessage("  Logging: chat, commands, joins, leaves,");
+        console.sendMessage(" §7Author: " + (authors.isEmpty() ? "LightLogs" : String.join(", ", authors)));
+        console.sendMessage("§8----------------------------------------");
+        console.sendMessage("§b  ✔ LightLogs is ready");
+        console.sendMessage("§7  Logging: chat, commands, joins, leaves,");
         console.sendMessage("           deaths, explosions, gamemode");
-        console.sendMessage("  Integrations: " + (integrations.isEmpty() ? "None" : String.join(", ", integrations)));
+        console.sendMessage("§7  Integrations: " + (integrations.isEmpty() ? "None" : String.join(", ", integrations)));
         console.sendMessage("  Config: plugins/LightLogs/config.yml");
-        console.sendMessage("----------------------------------------");
+        console.sendMessage("§8----------------------------------------");
     }
 
     private void addIntegrationIfEnabled(List<String> integrations, String pluginName, String label) {
