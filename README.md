@@ -2,6 +2,8 @@
 
 LightLogs sends selected Paper server and supported plugin events to Discord channels through Discord webhooks. It is designed to stay lightweight: it uses Java's built-in HTTP client, performs webhook requests asynchronously, and has no required runtime plugin dependencies. Optional integrations are detected at runtime.
 
+> **Disclaimer:** LightLogs is not a replacement for or an alternative to DiscordSRV, and it is not associated with DiscordSRV or its developers. LightLogs is a lightweight solution for sending server logs to staff logging channels in Discord.
+
 ## Features
 
 - Player chat, commands, joins, leaves, deaths, gamemode changes, and block/entity explosions
