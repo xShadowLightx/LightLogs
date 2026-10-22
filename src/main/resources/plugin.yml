@@ -1,0 +1,19 @@
+name: LightLogs
+version: '${version}'
+main: dev.lightlogs.LightLogsPlugin
+api-version: '${apiVersion}'
+description: Sends configurable Paper server event logs to Discord webhooks.
+author: LightLogs
+commands:
+  lightlogs:
+    description: Reload LightLogs configuration.
+    usage: /lightlogs <reload|status|pause|resume> [all|log-target]
+    permission: lightlogs.admin
+permissions:
+  lightlogs.admin:
+    description: Allows reloading LightLogs.
+    default: op
+  lightlogs.update-notify:
+    description: Receives a clickable notification when a newer LightLogs release is available.
+    default: op
+softdepend: [LuckPerms, NuVotifier, Votifier, CMI, Towny, AuraSkills, RealisticSeasons, StaffPlusPlus, 'Staff++']

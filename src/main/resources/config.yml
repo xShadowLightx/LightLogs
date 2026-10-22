@@ -1,0 +1,128 @@
+# Create one Discord webhook per channel at Server Settings > Integrations > Webhooks.
+# Paste the complete webhook URL here. Keep this file private; URLs grant posting access.
+# Use 'none' to explicitly disable a webhook. Blank context-specific URLs fall back to the global webhook.
+webhooks:
+  # Final fallback for any log category without a configured destination.
+  global: ''
+  chat: ''
+  commands: ''
+  join: ''
+  leave: ''
+  deaths: ''
+  explosions: ''
+  gamemode: ''
+  votes: ''
+  # CMI balance changes made through CMI economy, including its Vault provider/injector.
+  economy: ''
+  # LuckPerms specific routes override the legacy permission/parent routes below,
+  # which in turn fall back to luckperms. Set any route to 'none' to disable it.
+  luckperms: ''
+  luckperms-user-parents: ''
+  luckperms-group-permissions: ''
+  # Legacy routes remain supported as intermediate fallbacks.
+  luckperms-permissions: ''
+  luckperms-parents: ''
+  # Towny context URLs override the global Towny URL below. Leave blank to use webhooks.towny.
+  towny-contexts:
+    towns: ''
+    nations: ''
+    residents: ''
+    plots: ''
+    permissions: ''
+    balances: ''
+    jails: ''
+    wars: ''
+    ranks: ''
+    settings: ''
+  towny: ''
+  auraskills: ''
+  # Skill-specific URLs override auraskills above. Use AuraSkills IDs (lowercase),
+  # such as farming or 'myplugin:magic'. Leave empty to use the global URL.
+  auraskills-skills:
+    farming: ''
+    foraging: ''
+    mining: ''
+    excavation: ''
+    fishing: ''
+    archery: ''
+    defense: ''
+    fighting: ''
+    agility: ''
+    endurance: ''
+    alchemy: ''
+    enchanting: ''
+  realistic-seasons: ''
+  # These context URLs override realistic-seasons above. Blank values use realistic-seasons, then global.
+  realistic-seasons-contexts:
+    season-changes: ''
+    special-events: ''
+    day-changes: ''
+    weather-reports: ''
+  staff: ''
+
+settings:
+  # Prevent @everyone/@here and user mentions from pinging Discord members.
+  suppress-mentions: true
+  # Identify which Minecraft server generated a message.
+  server-name: 'Minecraft Server'
+  # Towny contexts can be disabled independently. Global enabled=false disables all Towny logging.
+  towny:
+    enabled: true
+    contexts:
+      towns: true
+      nations: true
+      residents: true
+      plots: true
+      permissions: true
+      balances: true
+      jails: true
+      wars: true
+      ranks: true
+      settings: true
+  # Commands whose arguments may contain passwords are skipped entirely.
+  ignored-commands:
+    - login
+    - l
+    - register
+    - reg
+    - changepassword
+    - email
+  # Staff++ command aliases. Commands match the first word after /.
+  staff-commands:
+    - staffplusplus
+    - staff
+    - sfly
+    - staffhub
+    - freeze
+    - vanish
+    - ticket
+    - alerts
+    - revive
+    - personnel
+    - strip
+    - clear
+    - trace
+    - eview
+    - broadcast
+    - protectplayer
+    - protectarea
+    - ban
+    - tempban
+    - unban
+    - kick
+    - mute
+    - tempmute
+    - unmute
+    - report
+    - reports
+    - warn
+    - warnings
+    - sc
+
+options:
+  update-checker:
+    enabled: true
+    # GitHub owner/repository used for Releases > latest. Example: 'xShadowLightx/LightLogs'.
+    # Leave blank to disable update checks until the repository is published/configured.
+    repository: ''
+
