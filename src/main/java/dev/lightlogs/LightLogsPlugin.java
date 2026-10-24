@@ -35,6 +35,7 @@ public final class LightLogsPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         discordLogger = new DiscordLogger(this);
+        discordLogger.applyConfiguredWebhookProfiles();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new LoggingListener(this, discordLogger), this);
         OptionalIntegrations.register(this, discordLogger);
@@ -209,6 +210,7 @@ public final class LightLogsPlugin extends JavaPlugin implements Listener {
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             reloadConfig();
             discordLogger.refresh();
+            discordLogger.applyConfiguredWebhookProfiles();
             loadUpdateCheckerSettings();
             if (updateCheckerEnabled) checkForUpdatesAsync();
             sender.sendMessage("LightLogs configuration reloaded.");

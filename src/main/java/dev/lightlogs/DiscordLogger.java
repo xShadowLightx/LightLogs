@@ -2,11 +2,14 @@ package dev.lightlogs;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.time.Duration;
 import java.util.Map;
 import java.util.ArrayList;
@@ -24,10 +27,13 @@ final class DiscordLogger {
     private volatile Map<String, Boolean> townyContextEnabled = Map.of();
     private volatile Map<String, List<String>> realisticSeasonsContextWebhooks = Map.of();
     private final Set<String> pausedTargets = ConcurrentHashMap.newKeySet();
+    private final Map<String, String> appliedWebhookProfiles = new ConcurrentHashMap<>();
     private volatile boolean allPaused;
     private volatile boolean townyEnabled = true;
     private volatile String serverName;
     private volatile boolean suppressMentions;
+    private volatile boolean webhookProfileEnabled = true;
+    private volatile String webhookProfileName = "LightLogs";
 
     DiscordLogger(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -75,6 +81,64 @@ final class DiscordLogger {
         townyEnabled = plugin.getConfig().getBoolean("settings.towny.enabled", true);
         serverName = clean(plugin.getConfig().getString("settings.server-name", "Minecraft Server"));
         suppressMentions = plugin.getConfig().getBoolean("settings.suppress-mentions", true);
+        webhookProfileEnabled = plugin.getConfig().getBoolean("options.webhook-profile.enabled", true);
+        webhookProfileName = clean(plugin.getConfig().getString("options.webhook-profile.name", "LightLogs: {server-name}"))
+                .replace("{server-name}", serverName);
+        if (webhookProfileName.isBlank()) webhookProfileName = "LightLogs";
+        if (webhookProfileName.length() > 80) webhookProfileName = webhookProfileName.substring(0, 80);
+    }
+
+    void applyConfiguredWebhookProfiles() {
+        if (!webhookProfileEnabled) return;
+        byte[] avatar;
+        try (InputStream resource = plugin.getResource("lightlogs-icon.png")) {
+            if (resource == null) {
+                plugin.getLogger().warning("Could not apply webhook avatars: bundled lightlogs-icon.png is missing.");
+                return;
+            }
+            avatar = resource.readAllBytes();
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Could not read the bundled webhook avatar: " + exception.getMessage());
+            return;
+        }
+        String avatarData = "data:image/png;base64," + Base64.getEncoder().encodeToString(avatar);
+        String profileName = webhookProfileName;
+        Set<String> configuredUrls = ConcurrentHashMap.newKeySet();
+        webhooks.values().forEach(configuredUrls::addAll);
+        auraSkillWebhooks.values().forEach(configuredUrls::addAll);
+        townyContextWebhooks.values().forEach(configuredUrls::addAll);
+        realisticSeasonsContextWebhooks.values().forEach(configuredUrls::addAll);
+
+        for (String url : configuredUrls) {
+            if ((!url.startsWith("https://discord.com/api/webhooks/")
+                    && !url.startsWith("https://discordapp.com/api/webhooks/"))
+                    || profileName.equals(appliedWebhookProfiles.get(url))) continue;
+            HttpRequest request;
+            try {
+                request = HttpRequest.newBuilder(URI.create(url))
+                        .timeout(Duration.ofSeconds(10))
+                        .header("Content-Type", "application/json; charset=UTF-8")
+                        .header("User-Agent", "LightLogs/" + plugin.getDescription().getVersion())
+                        .method("PATCH", HttpRequest.BodyPublishers.ofString(
+                                "{\"name\":\"" + jsonEscape(profileName) + "\",\"avatar\":\""
+                                        + avatarData + "\"}", StandardCharsets.UTF_8))
+                        .build();
+            } catch (IllegalArgumentException exception) {
+                plugin.getLogger().warning("Could not apply the LightLogs avatar to a malformed webhook URL.");
+                continue;
+            }
+            client.sendAsync(request, HttpResponse.BodyHandlers.discarding()).thenAccept(response -> {
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    appliedWebhookProfiles.put(url, profileName);
+                } else {
+                    plugin.getLogger().warning("Could not set the LightLogs avatar on a Discord webhook (HTTP "
+                            + response.statusCode() + "). Check that its URL is valid and try reloading the plugin.");
+                }
+            }).exceptionally(error -> {
+                plugin.getLogger().warning("Could not update a Discord webhook avatar: " + error.getClass().getSimpleName());
+                return null;
+            });
+        }
     }
 
     void send(String category, String message) {

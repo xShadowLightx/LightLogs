@@ -196,6 +196,12 @@ Vault's Economy API is a provider interface, not a shared transaction event bus.
 - Review the server console for invalid webhook URL warnings or HTTP response errors.
 - Webhook network requests run asynchronously so they do not block the server tick thread.
 
+## Discord webhook profile
+
+By default, LightLogs sets each configured Discord webhook's persistent name to `LightLogs: <server-name>` and applies the bundled LightLogs icon when the plugin starts. `<server-name>` comes from `settings.server-name`. It updates each unique configured webhook once, including URLs in context-specific and multi-webhook routes. The configured webhook token authorizes this change; no Discord bot is needed. This replaces names and avatars you previously set on those webhooks. Set `options.webhook-profile.enabled: false` to leave them unchanged, or change `options.webhook-profile.name` to use a different webhook name. The `{server-name}` placeholder is replaced with the configured server name. Discord limits webhook names to 80 characters and rejects names containing `Discord` or `Clyde`.
+
+The profile update uses Discord's [Modify Webhook with Token API](https://discord.com/developers/docs/resources/webhook#modify-webhook-with-token). If Discord rejects a webhook URL or the update fails, LightLogs logs a warning and continues operating normally.
+
 ## Update checker
 
 LightLogs checks the `xShadowLightx/LightLogs` GitHub repository for a newer release in the background at startup. The check uses the latest published GitHub Release. If its tag contains a newer numeric version than the installed plugin version, LightLogs logs the release URL to console and sends online operators with `lightlogs.update-notify` a clickable link. Players joining after the check receive the same notice. The permission defaults to operators. The checker can only find versions that have been published as GitHub Releases; pushing code or creating a repository alone is not enough.

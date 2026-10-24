@@ -121,6 +121,11 @@ settings:
     - sc
 
 options:
+  webhook-profile:
+    # Automatically set each configured Discord webhook's persistent name and avatar.
+    # This replaces existing webhook names/avatars. Set enabled false to leave profiles unchanged.
+    enabled: true
+    name: 'LightLogs: {server-name}'
   update-checker:
     enabled: true
     # GitHub owner/repository used for Releases > latest. Example: 'xShadowLightx/LightLogs'.

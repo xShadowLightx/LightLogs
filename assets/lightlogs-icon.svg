@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">LightLogs icon</title>
+  <desc id="description">Pixel-inspired server log lines in teal and blue on a dark rounded square.</desc>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#172235"/>
+      <stop offset="1" stop-color="#0b1220"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#55e7d0"/>
+      <stop offset="1" stop-color="#3aa9ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="100" fill="url(#tile)"/>
+  <path d="M88 142h92v52H88zM192 142h58v52h-58zM262 142h162v52H262z" fill="url(#accent)"/>
+  <path d="M88 230h52v52H88zM152 230h196v52H152zM360 230h64v52h-64z" fill="#dbeafe"/>
+  <path d="M88 318h126v52H88zM226 318h58v52h-58zM296 318h128v52H296z" fill="url(#accent)"/>
+  <circle cx="448" cy="168" r="14" fill="#a7f3d0"/>
+  <circle cx="448" cy="256" r="14" fill="#a7f3d0"/>
+  <circle cx="448" cy="344" r="14" fill="#a7f3d0"/>
+</svg>
