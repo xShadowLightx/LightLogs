@@ -61,7 +61,7 @@ Treat webhook URLs like passwords. Anyone who has a URL can post to its channel.
 | --- | --- |
 | Standard server category, votes, economy, staff | Specific `webhooks.<category>` → `webhooks.global` |
 | AuraSkills level-up | Matching `webhooks.auraskills-skills.<skill-id>` → `webhooks.auraskills` → `webhooks.global` |
-| Towny context | `webhooks.towny-contexts.<context>` → `webhooks.towny` → `webhooks.global` |
+| Towny event | `webhooks.towny-events.<event-id>` → `webhooks.towny-contexts.<context>` → `webhooks.towny` → `webhooks.global` |
 | LuckPerms user parent/group permission context | `webhooks.luckperms-<context>` → matching legacy `webhooks.luckperms-parents` or `webhooks.luckperms-permissions` → `webhooks.luckperms` → `webhooks.global` |
 | RealisticSeasons context | `webhooks.realistic-seasons-contexts.<context>` → `webhooks.realistic-seasons` → `webhooks.global` |
 
@@ -78,9 +78,13 @@ webhooks:
     wars:
       - 'https://discord.com/api/webhooks/TOWNY_WARS_ID/TOWNY_WARS_TOKEN'
       - 'https://discord.com/api/webhooks/STAFF_AUDIT_ID/STAFF_AUDIT_TOKEN'
+  towny-events:
+    town-claim: 'https://discord.com/api/webhooks/TOWN_CLAIMS_ID/TOWN_CLAIMS_TOKEN'
 ```
 
 The existing single-string format remains supported. An empty list behaves like a blank route and uses its normal fallback. Use the single value `'none'` to disable a route; it stops fallback.
+
+Towny supports both the broad context routes and optional per-event routes. Event IDs are derived from the Towny event class name by removing the trailing `Event` and converting the remaining name to lowercase kebab case: for example, `TownClaimEvent` becomes `town-claim`, and `NationKingChangeEvent` becomes `nation-king-change`. Add any event ID under `webhooks.towny-events`; blank values use the existing context route. An event-specific value of `none` suppresses only that event. Per-event URLs also support lists for sending the event to multiple channels. Existing `settings.towny.contexts` toggles still apply, and individual configured event routes can be paused with `/lightlogs pause towny.events.<event-id>`.
 
 ## Configuration reference
 
@@ -116,6 +120,8 @@ The following options are in `plugins/LightLogs/config.yml`. The shipped config 
 | `towny-contexts.wars` | Towny war, conquer, enemy, and allied-town events when exposed by the installed Towny/event plugin. |
 | `towny-contexts.ranks` | Towny rank change events. |
 | `towny-contexts.settings` | Town/town-block setting toggle and settings-change events. |
+| `towny-contexts.other` | Catch-all for public Towny Bukkit events not matched to another context, including general API events such as Towny database load and new-day notifications. |
+| `towny-events.<event-id>` | Optional route for one Towny Bukkit event. IDs are the class name in lowercase kebab case without the `Event` suffix, such as `town-claim` or `nation-king-change`. Blank routes use the event's context route; `none` disables just that event. |
 | `auraskills` | Global AuraSkills destination and fallback for skill IDs without a specific URL. |
 | `auraskills-skills.<skill-id>` | Optional AuraSkills destination per skill. Shipped IDs include `farming`, `foraging`, `mining`, `excavation`, `fishing`, `archery`, `defense`, `fighting`, `agility`, `endurance`, `alchemy`, and `enchanting`. Add custom skill IDs as quoted YAML keys if they contain `:`. |
 | `realistic-seasons` | Global RealisticSeasons destination used when a context URL is blank. |
@@ -158,6 +164,7 @@ Farming level-ups go to the farming channel. Mining and other skills with blank/
 | `towny.contexts.wars` | `true` | Enable/disable Towny war-related events independently. |
 | `towny.contexts.ranks` | `true` | Enable/disable Towny rank events independently. |
 | `towny.contexts.settings` | `true` | Enable/disable Towny setting and toggle events independently. |
+| `towny.contexts.other` | `true` | Enable/disable Towny events that do not match another configured context. |
 
 Example to turn off just Towny plot and war events:
 

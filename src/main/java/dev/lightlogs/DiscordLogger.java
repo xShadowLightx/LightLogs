@@ -24,6 +24,7 @@ final class DiscordLogger {
     private volatile Map<String, List<String>> webhooks = Map.of();
     private volatile Map<String, List<String>> auraSkillWebhooks = Map.of();
     private volatile Map<String, List<String>> townyContextWebhooks = Map.of();
+    private volatile Map<String, List<String>> townyEventWebhooks = Map.of();
     private volatile Map<String, Boolean> townyContextEnabled = Map.of();
     private volatile Map<String, List<String>> realisticSeasonsContextWebhooks = Map.of();
     private final Set<String> pausedTargets = ConcurrentHashMap.newKeySet();
@@ -63,6 +64,13 @@ final class DiscordLogger {
             }
         }
         townyContextWebhooks = Map.copyOf(townyUrls);
+        Map<String, List<String>> townyEventUrls = new ConcurrentHashMap<>();
+        if (plugin.getConfig().isConfigurationSection("webhooks.towny-events")) {
+            for (String eventId : plugin.getConfig().getConfigurationSection("webhooks.towny-events").getKeys(false)) {
+                townyEventUrls.put(normalizeTownyEventId(eventId), normalizeWebhookValues("webhooks.towny-events." + eventId));
+            }
+        }
+        townyEventWebhooks = Map.copyOf(townyEventUrls);
         Map<String, Boolean> townyToggles = new ConcurrentHashMap<>();
         if (plugin.getConfig().isConfigurationSection("settings.towny.contexts")) {
             for (String context : plugin.getConfig().getConfigurationSection("settings.towny.contexts").getKeys(false)) {
@@ -107,6 +115,7 @@ final class DiscordLogger {
         webhooks.values().forEach(configuredUrls::addAll);
         auraSkillWebhooks.values().forEach(configuredUrls::addAll);
         townyContextWebhooks.values().forEach(configuredUrls::addAll);
+        townyEventWebhooks.values().forEach(configuredUrls::addAll);
         realisticSeasonsContextWebhooks.values().forEach(configuredUrls::addAll);
 
         for (String url : configuredUrls) {
@@ -161,17 +170,20 @@ final class DiscordLogger {
         sendWebhooks(urls, "auraskills", message);
     }
 
-    void sendTowny(String context, String message) {
+    void sendTowny(String context, String eventId, String message) {
         if (!townyEnabled) return;
         String normalized = context == null ? "" : context.trim().toLowerCase(java.util.Locale.ROOT);
-        if (isPaused("towny", "towny." + normalized)) return;
+        String normalizedEventId = normalizeTownyEventId(eventId);
+        if (isPaused("towny", "towny." + normalized, "towny.events." + normalizedEventId)) return;
         if (!townyContextEnabled.getOrDefault(normalized, true)) return;
-        List<String> urls = townyContextWebhooks.getOrDefault(normalized, List.of());
+        List<String> urls = townyEventWebhooks.getOrDefault(normalizedEventId, List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = townyContextWebhooks.getOrDefault(normalized, List.of());
         if (isNone(urls)) return;
         if (urls.isEmpty()) urls = webhooks.getOrDefault("towny", List.of());
         if (isNone(urls)) return;
         if (urls.isEmpty()) urls = webhooks.getOrDefault("global", List.of());
-        sendWebhooks(urls, "towny-" + normalized, message);
+        sendWebhooks(urls, "towny-" + normalizedEventId, message);
     }
 
     void sendLuckPerms(String context, String legacyCategory, String message) {
@@ -227,9 +239,11 @@ final class DiscordLogger {
                 "luckperms.user-parents", "luckperms.group-permissions", "luckperms.user-permissions", "luckperms.group-parents",
                 "luckperms-parents", "luckperms-permissions", "towny.towns", "towny.nations", "towny.residents", "towny.plots",
                 "towny.permissions", "towny.balances", "towny.jails", "towny.wars", "towny.ranks", "towny.settings",
+                "towny.other",
                 "realistic-seasons.season-changes", "realistic-seasons.special-events", "realistic-seasons.day-changes",
                 "realistic-seasons.weather-reports"));
         for (String skillId : auraSkillWebhooks.keySet()) targets.add("auraskills." + skillId);
+        for (String eventId : townyEventWebhooks.keySet()) targets.add("towny.events." + eventId);
         return Set.copyOf(targets);
     }
 
@@ -291,6 +305,10 @@ final class DiscordLogger {
 
     private static String normalizeSkillId(String skillId) {
         return skillId == null ? "" : skillId.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static String normalizeTownyEventId(String eventId) {
+        return eventId == null ? "" : eventId.trim().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
     }
 
     private List<String> normalizeWebhookValues(String path) {
