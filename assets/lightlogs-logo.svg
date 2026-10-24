@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="240" viewBox="0 0 920 240" role="img" aria-labelledby="title description">
+  <title id="title">LightLogs</title>
+  <desc id="description">A pixel-inspired server log icon beside the LightLogs wordmark.</desc>
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#55e7d0"/>
+      <stop offset="1" stop-color="#3aa9ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Pixel-inspired server tile -->
+  <rect x="20" y="20" width="200" height="200" rx="34" fill="#111827"/>
+  <path d="M54 72h38v22H54zM98 72h24v22H98zM138 72h48v22h-48z" fill="url(#accent)"/>
+  <path d="M54 109h22v22H54zM82 109h68v22H82zM156 109h30v22h-30z" fill="#dbeafe"/>
+  <path d="M54 146h48v22H54zM108 146h22v22h-22zM136 146h50v22h-50z" fill="url(#accent)"/>
+  <circle cx="194" cy="83" r="7" fill="#a7f3d0"/>
+  <circle cx="194" cy="120" r="7" fill="#a7f3d0"/>
+  <circle cx="194" cy="157" r="7" fill="#a7f3d0"/>
+
+  <!-- Wordmark -->
+  <text x="264" y="137" fill="#111827" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="88" font-weight="800" letter-spacing="-4">Light<tspan fill="#18b9b2">Logs</tspan></text>
+  <text x="270" y="181" fill="#64748b" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="5">SERVER EVENT LOGGING</text>
+</svg>

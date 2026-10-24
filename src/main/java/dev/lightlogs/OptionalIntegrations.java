@@ -293,16 +293,22 @@ final class OptionalIntegrations {
         String n = name.toLowerCase(java.util.Locale.ROOT);
         if (!n.endsWith("event")) return null;
         if (n.contains("jail")) return "jails";
-        if (n.contains("transaction") || n.contains("bankruptcy") || n.contains("tax") || n.contains("balance")) return "balances";
-        if (n.contains("rank")) return "ranks";
         if (n.contains("war") || n.contains("conquer") || n.contains("enemy") || n.contains("allied")) return "wars";
         if (n.contains("permission") || n.contains("trust")) return "permissions";
-        if (n.contains("toggle") || n.contains("settingschanged")) return "settings";
-        if (n.contains("claim") || n.contains("unclaim") || n.contains("plot") || n.contains("townblock") || n.contains("cede")) return "plots";
-        if (n.contains("resident") || n.contains("outlaw") || n.contains("kick") || n.contains("leave")) return "residents";
+        if (n.contains("rank")) return "ranks";
+        if (n.contains("toggle") || n.contains("setting") || n.contains("permissionmode")) return "settings";
+        if (n.contains("claim") || n.contains("unclaim") || n.contains("plot") || n.contains("townblock")
+                || n.contains("cede") || n.contains("changeplot")) return "plots";
+        if (n.contains("transaction") || n.contains("bankrupt") || n.contains("tax") || n.contains("balance")
+                || n.contains("economy") || n.contains("upkeep") || n.contains("deathprice")
+                || n.contains("purchasecost") || n.contains("newday")) return "balances";
         if (n.contains("nation")) return "nations";
-        if (n.contains("town") || n.contains("ruined") || n.contains("reclaimed")) return "towns";
-        return null;
+        if (n.contains("resident") || n.contains("player") || n.contains("outlaw") || n.contains("kick")
+                || n.contains("leave") || n.contains("invite")) return "residents";
+        if (n.contains("town") || n.contains("ruin") || n.contains("reclaim") || n.contains("mayor")) return "towns";
+        // Every public Towny Bukkit event is logged. Unmapped events use the catch-all route,
+        // which then follows towny-context -> towny -> global fallback behavior.
+        return "other";
     }
 
     private static void logTownyEvent(DiscordLogger logger, String context, Event event) {
@@ -313,9 +319,12 @@ final class OptionalIntegrations {
             // Non-cancellable event.
         }
         List<String> fields = new ArrayList<>();
-        for (String getter : List.of("getPlayer", "getActor", "getTown", "getNation", "getResident", "getTownBlock", "getPlot",
-                "getTarget", "getReason", "getAction", "getAmount", "getTransaction", "getBalance", "getJail", "getRank",
-                "getPermission", "getOldMayor", "getNewMayor", "getMayor", "getAttacker", "getDefender", "getWar", "getFrom", "getTo")) {
+        for (String getter : List.of("getPlayer", "getActor", "getSender", "getTarget", "getVictim", "getResident",
+                "getTown", "getNation", "getTownBlock", "getWorldCoord", "getPlot", "getReason", "getAction", "getAmount",
+                "getCost", "getTransaction", "getBalance", "getOldBalance", "getNewBalance", "getJail", "getRank",
+                "getPermission", "getOldMayor", "getNewMayor", "getMayor", "getAttacker", "getDefender", "getWar",
+                "getFrom", "getTo", "getOldName", "getNewName", "getOldTag", "getNewTag", "getOldType", "getNewType",
+                "getInvited", "getInviter", "getAlly", "getEnemy", "getUpkeep", "getTownBlocks", "getMetadata")) {
             try {
                 Object value = event.getClass().getMethod(getter).invoke(event);
                 if (value != null) fields.add(getter.substring(3) + "=" + DiscordLogger.clean(String.valueOf(value)));
@@ -326,7 +335,14 @@ final class OptionalIntegrations {
         String details = fields.isEmpty() ? "" : " — " + String.join(", ", fields);
         String message = "🏘️ **Towny / " + context + "** " + event.getClass().getSimpleName() + details;
         if (message.length() > 1900) message = message.substring(0, 1897) + "...";
-        logger.sendTowny(context, message);
+        logger.sendTowny(context, townyEventId(event.getClass().getSimpleName()), message);
+    }
+
+    private static String townyEventId(String eventClassName) {
+        String name = eventClassName.replaceFirst("(?i)Event$", "");
+        return name.replaceAll("([A-Z]+)([A-Z][a-z])", "$1-$2")
+                .replaceAll("([a-z0-9])([A-Z])", "$1-$2")
+                .toLowerCase(java.util.Locale.ROOT);
     }
 
     private static void logGenericEvent(DiscordLogger logger, String category, String pluginName, Event event) {

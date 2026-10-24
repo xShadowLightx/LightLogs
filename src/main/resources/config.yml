@@ -35,6 +35,22 @@ webhooks:
     wars: ''
     ranks: ''
     settings: ''
+    # Catch-all for Towny Bukkit events that do not match another context.
+    other: ''
+  # Optional per-event overrides take priority over towny-contexts, then towny, then global.
+  # Keys use the Towny event class name in kebab case without the trailing 'Event'.
+  towny-events:
+    town-claim: ''
+    town-cede-plot: ''
+    town-mayor-change: ''
+    town-add-resident: ''
+    new-town: ''
+    delete-town: ''
+    nation-king-change: ''
+    nation-add-enemy: ''
+    nation-remove-enemy: ''
+    nation-add-town: ''
+    towny-loaded-database: ''
   towny: ''
   auraskills: ''
   # Skill-specific URLs override auraskills above. Use AuraSkills IDs (lowercase),
@@ -80,6 +96,7 @@ settings:
       wars: true
       ranks: true
       settings: true
+      other: true
   # Commands whose arguments may contain passwords are skipped entirely.
   ignored-commands:
     - login
@@ -121,6 +138,11 @@ settings:
     - sc
 
 options:
+  webhook-profile:
+    # Automatically set each configured Discord webhook's persistent name and avatar.
+    # This replaces existing webhook names/avatars. Set enabled false to leave profiles unchanged.
+    enabled: true
+    name: 'LightLogs: {server-name}'
   update-checker:
     enabled: true
     # GitHub owner/repository used for Releases > latest. Example: 'xShadowLightx/LightLogs'.

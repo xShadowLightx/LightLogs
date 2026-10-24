@@ -1,3 +1,5 @@
+![LightLogs banner](assets/lightlogs-banner-dark.svg)
+
 # LightLogs
 
 LightLogs sends selected Paper server and supported plugin events to Discord channels through Discord webhooks. It is designed to stay lightweight: it uses Java's built-in HTTP client, performs webhook requests asynchronously, and has no required runtime plugin dependencies. Optional integrations are detected at runtime.
@@ -28,8 +30,8 @@ This project builds two separate plugin jars:
 
 | Server | Java runtime for server | Gradle task | Output |
 | --- | --- | --- | --- |
-| Paper 1.21.11 | Java 21 | `gradle build` | `build/libs/LightLogs-V-1.1.1-paper-1.21.11.jar` |
-| Paper 26.3 | Java 25 | `gradle paper263Jar` | `build/libs/LightLogs-V-1.1.1-paper-26.3.jar` |
+| Paper 1.21.11 | Java 21 | `gradle build` | `build/libs/LightLogs-1.1.2-paper-1.21.11.jar` |
+| Paper 26.3 | Java 25 | `gradle paper263Jar` | `build/libs/LightLogs-1.1.2-paper-26.3.jar` |
 
 To build both jars, use `gradle buildAll` with JDK 21 and JDK 25 available to Gradle. Gradle 8 or later is required. Install only the jar matching the server in that server's `plugins` folder. The jars share a plugin name, so do not install both in one server.
 
@@ -59,7 +61,7 @@ Treat webhook URLs like passwords. Anyone who has a URL can post to its channel.
 | --- | --- |
 | Standard server category, votes, economy, staff | Specific `webhooks.<category>` → `webhooks.global` |
 | AuraSkills level-up | Matching `webhooks.auraskills-skills.<skill-id>` → `webhooks.auraskills` → `webhooks.global` |
-| Towny context | `webhooks.towny-contexts.<context>` → `webhooks.towny` → `webhooks.global` |
+| Towny event | `webhooks.towny-events.<event-id>` → `webhooks.towny-contexts.<context>` → `webhooks.towny` → `webhooks.global` |
 | LuckPerms user parent/group permission context | `webhooks.luckperms-<context>` → matching legacy `webhooks.luckperms-parents` or `webhooks.luckperms-permissions` → `webhooks.luckperms` → `webhooks.global` |
 | RealisticSeasons context | `webhooks.realistic-seasons-contexts.<context>` → `webhooks.realistic-seasons` → `webhooks.global` |
 
@@ -76,9 +78,13 @@ webhooks:
     wars:
       - 'https://discord.com/api/webhooks/TOWNY_WARS_ID/TOWNY_WARS_TOKEN'
       - 'https://discord.com/api/webhooks/STAFF_AUDIT_ID/STAFF_AUDIT_TOKEN'
+  towny-events:
+    town-claim: 'https://discord.com/api/webhooks/TOWN_CLAIMS_ID/TOWN_CLAIMS_TOKEN'
 ```
 
 The existing single-string format remains supported. An empty list behaves like a blank route and uses its normal fallback. Use the single value `'none'` to disable a route; it stops fallback.
+
+Towny supports both the broad context routes and optional per-event routes. Event IDs are derived from the Towny event class name by removing the trailing `Event` and converting the remaining name to lowercase kebab case: for example, `TownClaimEvent` becomes `town-claim`, and `NationKingChangeEvent` becomes `nation-king-change`. Add any event ID under `webhooks.towny-events`; blank values use the existing context route. An event-specific value of `none` suppresses only that event. Per-event URLs also support lists for sending the event to multiple channels. Existing `settings.towny.contexts` toggles still apply, and individual configured event routes can be paused with `/lightlogs pause towny.events.<event-id>`.
 
 ## Configuration reference
 
@@ -114,6 +120,8 @@ The following options are in `plugins/LightLogs/config.yml`. The shipped config 
 | `towny-contexts.wars` | Towny war, conquer, enemy, and allied-town events when exposed by the installed Towny/event plugin. |
 | `towny-contexts.ranks` | Towny rank change events. |
 | `towny-contexts.settings` | Town/town-block setting toggle and settings-change events. |
+| `towny-contexts.other` | Catch-all for public Towny Bukkit events not matched to another context, including general API events such as Towny database load and new-day notifications. |
+| `towny-events.<event-id>` | Optional route for one Towny Bukkit event. IDs are the class name in lowercase kebab case without the `Event` suffix, such as `town-claim` or `nation-king-change`. Blank routes use the event's context route; `none` disables just that event. |
 | `auraskills` | Global AuraSkills destination and fallback for skill IDs without a specific URL. |
 | `auraskills-skills.<skill-id>` | Optional AuraSkills destination per skill. Shipped IDs include `farming`, `foraging`, `mining`, `excavation`, `fishing`, `archery`, `defense`, `fighting`, `agility`, `endurance`, `alchemy`, and `enchanting`. Add custom skill IDs as quoted YAML keys if they contain `:`. |
 | `realistic-seasons` | Global RealisticSeasons destination used when a context URL is blank. |
@@ -156,6 +164,7 @@ Farming level-ups go to the farming channel. Mining and other skills with blank/
 | `towny.contexts.wars` | `true` | Enable/disable Towny war-related events independently. |
 | `towny.contexts.ranks` | `true` | Enable/disable Towny rank events independently. |
 | `towny.contexts.settings` | `true` | Enable/disable Towny setting and toggle events independently. |
+| `towny.contexts.other` | `true` | Enable/disable Towny events that do not match another configured context. |
 
 Example to turn off just Towny plot and war events:
 
@@ -195,6 +204,12 @@ Vault's Economy API is a provider interface, not a shared transaction event bus.
 - Check that the optional plugin is installed, enabled, and listed in the integration table above.
 - Review the server console for invalid webhook URL warnings or HTTP response errors.
 - Webhook network requests run asynchronously so they do not block the server tick thread.
+
+## Discord webhook profile
+
+By default, LightLogs sets each configured Discord webhook's persistent name to `LightLogs: <server-name>` and applies the bundled LightLogs icon when the plugin starts. `<server-name>` comes from `settings.server-name`. It updates each unique configured webhook once, including URLs in context-specific and multi-webhook routes. The configured webhook token authorizes this change; no Discord bot is needed. This replaces names and avatars you previously set on those webhooks. Set `options.webhook-profile.enabled: false` to leave them unchanged, or change `options.webhook-profile.name` to use a different webhook name. The `{server-name}` placeholder is replaced with the configured server name. Discord limits webhook names to 80 characters and rejects names containing `Discord` or `Clyde`.
+
+The profile update uses Discord's [Modify Webhook with Token API](https://discord.com/developers/docs/resources/webhook#modify-webhook-with-token). If Discord rejects a webhook URL or the update fails, LightLogs logs a warning and continues operating normally.
 
 ## Update checker
 

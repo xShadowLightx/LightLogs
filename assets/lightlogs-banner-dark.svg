@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="500" viewBox="0 0 1600 500" role="img" aria-labelledby="title description">
+  <title id="title">LightLogs dark banner</title>
+  <desc id="description">A dark LightLogs banner featuring the pixel-inspired logging icon and wordmark.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111d31"/>
+      <stop offset="1" stop-color="#080e19"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#55e7d0"/>
+      <stop offset="1" stop-color="#3aa9ff"/>
+    </linearGradient>
+    <pattern id="pixel-grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M0 64V0H64" fill="none" stroke="#9ab8d8" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="500" rx="36" fill="url(#background)"/>
+  <rect width="1600" height="500" rx="36" fill="url(#pixel-grid)"/>
+  <circle cx="1450" cy="60" r="190" fill="#3aa9ff" opacity=".07"/>
+  <circle cx="1400" cy="470" r="240" fill="#55e7d0" opacity=".045"/>
+  <rect x="112" y="112" width="276" height="276" rx="58" fill="#111827" stroke="#55e7d0" stroke-opacity=".32" stroke-width="3"/>
+  <path d="M160 184h126v54H160zM300 184h76v54h-76z" fill="url(#accent)"/>
+  <path d="M160 260h54v54h-54zM228 260h148v54H228z" fill="#dbeafe"/>
+  <path d="M160 336h92v54h-92zM266 336h54v54h-54zM334 336h42v54h-42z" fill="url(#accent)"/>
+  <circle cx="364" cy="211" r="8" fill="#a7f3d0"/>
+  <circle cx="364" cy="287" r="8" fill="#a7f3d0"/>
+  <circle cx="364" cy="363" r="8" fill="#a7f3d0"/>
+  <text x="464" y="257" fill="#f8fafc" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="118" font-weight="800" letter-spacing="-6">Light<tspan fill="#55e7d0">Logs</tspan></text>
+  <text x="474" y="322" fill="#a8b7cb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="30" font-weight="700" letter-spacing="8">LIGHTWEIGHT SERVER EVENT LOGGING</text>
+  <path d="M474 365h420" stroke="url(#accent)" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+  <text x="474" y="411" fill="#73849c" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="600" letter-spacing="3">PAPER PLUGIN  ·  STAFF LOGGING</text>
+</svg>

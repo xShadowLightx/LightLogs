@@ -2,11 +2,14 @@ package dev.lightlogs;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.time.Duration;
 import java.util.Map;
 import java.util.ArrayList;
@@ -21,13 +24,17 @@ final class DiscordLogger {
     private volatile Map<String, List<String>> webhooks = Map.of();
     private volatile Map<String, List<String>> auraSkillWebhooks = Map.of();
     private volatile Map<String, List<String>> townyContextWebhooks = Map.of();
+    private volatile Map<String, List<String>> townyEventWebhooks = Map.of();
     private volatile Map<String, Boolean> townyContextEnabled = Map.of();
     private volatile Map<String, List<String>> realisticSeasonsContextWebhooks = Map.of();
     private final Set<String> pausedTargets = ConcurrentHashMap.newKeySet();
+    private final Map<String, String> appliedWebhookProfiles = new ConcurrentHashMap<>();
     private volatile boolean allPaused;
     private volatile boolean townyEnabled = true;
     private volatile String serverName;
     private volatile boolean suppressMentions;
+    private volatile boolean webhookProfileEnabled = true;
+    private volatile String webhookProfileName = "LightLogs";
 
     DiscordLogger(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -57,6 +64,13 @@ final class DiscordLogger {
             }
         }
         townyContextWebhooks = Map.copyOf(townyUrls);
+        Map<String, List<String>> townyEventUrls = new ConcurrentHashMap<>();
+        if (plugin.getConfig().isConfigurationSection("webhooks.towny-events")) {
+            for (String eventId : plugin.getConfig().getConfigurationSection("webhooks.towny-events").getKeys(false)) {
+                townyEventUrls.put(normalizeTownyEventId(eventId), normalizeWebhookValues("webhooks.towny-events." + eventId));
+            }
+        }
+        townyEventWebhooks = Map.copyOf(townyEventUrls);
         Map<String, Boolean> townyToggles = new ConcurrentHashMap<>();
         if (plugin.getConfig().isConfigurationSection("settings.towny.contexts")) {
             for (String context : plugin.getConfig().getConfigurationSection("settings.towny.contexts").getKeys(false)) {
@@ -75,6 +89,65 @@ final class DiscordLogger {
         townyEnabled = plugin.getConfig().getBoolean("settings.towny.enabled", true);
         serverName = clean(plugin.getConfig().getString("settings.server-name", "Minecraft Server"));
         suppressMentions = plugin.getConfig().getBoolean("settings.suppress-mentions", true);
+        webhookProfileEnabled = plugin.getConfig().getBoolean("options.webhook-profile.enabled", true);
+        webhookProfileName = clean(plugin.getConfig().getString("options.webhook-profile.name", "LightLogs: {server-name}"))
+                .replace("{server-name}", serverName);
+        if (webhookProfileName.isBlank()) webhookProfileName = "LightLogs";
+        if (webhookProfileName.length() > 80) webhookProfileName = webhookProfileName.substring(0, 80);
+    }
+
+    void applyConfiguredWebhookProfiles() {
+        if (!webhookProfileEnabled) return;
+        byte[] avatar;
+        try (InputStream resource = plugin.getResource("lightlogs-icon.png")) {
+            if (resource == null) {
+                plugin.getLogger().warning("Could not apply webhook avatars: bundled lightlogs-icon.png is missing.");
+                return;
+            }
+            avatar = resource.readAllBytes();
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Could not read the bundled webhook avatar: " + exception.getMessage());
+            return;
+        }
+        String avatarData = "data:image/png;base64," + Base64.getEncoder().encodeToString(avatar);
+        String profileName = webhookProfileName;
+        Set<String> configuredUrls = ConcurrentHashMap.newKeySet();
+        webhooks.values().forEach(configuredUrls::addAll);
+        auraSkillWebhooks.values().forEach(configuredUrls::addAll);
+        townyContextWebhooks.values().forEach(configuredUrls::addAll);
+        townyEventWebhooks.values().forEach(configuredUrls::addAll);
+        realisticSeasonsContextWebhooks.values().forEach(configuredUrls::addAll);
+
+        for (String url : configuredUrls) {
+            if ((!url.startsWith("https://discord.com/api/webhooks/")
+                    && !url.startsWith("https://discordapp.com/api/webhooks/"))
+                    || profileName.equals(appliedWebhookProfiles.get(url))) continue;
+            HttpRequest request;
+            try {
+                request = HttpRequest.newBuilder(URI.create(url))
+                        .timeout(Duration.ofSeconds(10))
+                        .header("Content-Type", "application/json; charset=UTF-8")
+                        .header("User-Agent", "LightLogs/" + plugin.getDescription().getVersion())
+                        .method("PATCH", HttpRequest.BodyPublishers.ofString(
+                                "{\"name\":\"" + jsonEscape(profileName) + "\",\"avatar\":\""
+                                        + avatarData + "\"}", StandardCharsets.UTF_8))
+                        .build();
+            } catch (IllegalArgumentException exception) {
+                plugin.getLogger().warning("Could not apply the LightLogs avatar to a malformed webhook URL.");
+                continue;
+            }
+            client.sendAsync(request, HttpResponse.BodyHandlers.discarding()).thenAccept(response -> {
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    appliedWebhookProfiles.put(url, profileName);
+                } else {
+                    plugin.getLogger().warning("Could not set the LightLogs avatar on a Discord webhook (HTTP "
+                            + response.statusCode() + "). Check that its URL is valid and try reloading the plugin.");
+                }
+            }).exceptionally(error -> {
+                plugin.getLogger().warning("Could not update a Discord webhook avatar: " + error.getClass().getSimpleName());
+                return null;
+            });
+        }
     }
 
     void send(String category, String message) {
@@ -97,17 +170,20 @@ final class DiscordLogger {
         sendWebhooks(urls, "auraskills", message);
     }
 
-    void sendTowny(String context, String message) {
+    void sendTowny(String context, String eventId, String message) {
         if (!townyEnabled) return;
         String normalized = context == null ? "" : context.trim().toLowerCase(java.util.Locale.ROOT);
-        if (isPaused("towny", "towny." + normalized)) return;
+        String normalizedEventId = normalizeTownyEventId(eventId);
+        if (isPaused("towny", "towny." + normalized, "towny.events." + normalizedEventId)) return;
         if (!townyContextEnabled.getOrDefault(normalized, true)) return;
-        List<String> urls = townyContextWebhooks.getOrDefault(normalized, List.of());
+        List<String> urls = townyEventWebhooks.getOrDefault(normalizedEventId, List.of());
+        if (isNone(urls)) return;
+        if (urls.isEmpty()) urls = townyContextWebhooks.getOrDefault(normalized, List.of());
         if (isNone(urls)) return;
         if (urls.isEmpty()) urls = webhooks.getOrDefault("towny", List.of());
         if (isNone(urls)) return;
         if (urls.isEmpty()) urls = webhooks.getOrDefault("global", List.of());
-        sendWebhooks(urls, "towny-" + normalized, message);
+        sendWebhooks(urls, "towny-" + normalizedEventId, message);
     }
 
     void sendLuckPerms(String context, String legacyCategory, String message) {
@@ -163,9 +239,11 @@ final class DiscordLogger {
                 "luckperms.user-parents", "luckperms.group-permissions", "luckperms.user-permissions", "luckperms.group-parents",
                 "luckperms-parents", "luckperms-permissions", "towny.towns", "towny.nations", "towny.residents", "towny.plots",
                 "towny.permissions", "towny.balances", "towny.jails", "towny.wars", "towny.ranks", "towny.settings",
+                "towny.other",
                 "realistic-seasons.season-changes", "realistic-seasons.special-events", "realistic-seasons.day-changes",
                 "realistic-seasons.weather-reports"));
         for (String skillId : auraSkillWebhooks.keySet()) targets.add("auraskills." + skillId);
+        for (String eventId : townyEventWebhooks.keySet()) targets.add("towny.events." + eventId);
         return Set.copyOf(targets);
     }
 
@@ -227,6 +305,10 @@ final class DiscordLogger {
 
     private static String normalizeSkillId(String skillId) {
         return skillId == null ? "" : skillId.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static String normalizeTownyEventId(String eventId) {
+        return eventId == null ? "" : eventId.trim().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
     }
 
     private List<String> normalizeWebhookValues(String path) {
