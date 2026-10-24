@@ -1,4 +1,4 @@
-![LightLogs banner](assets/lightlogs-logo.svg)
+![LightLogs banner](assets/lightlogs-banner-dark.svg)
 
 # LightLogs
 
