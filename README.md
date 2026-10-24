@@ -1,3 +1,5 @@
+![LightLogs banner](assets/lightlogs-logo.svg)
+
 # LightLogs
 
 LightLogs sends selected Paper server and supported plugin events to Discord channels through Discord webhooks. It is designed to stay lightweight: it uses Java's built-in HTTP client, performs webhook requests asynchronously, and has no required runtime plugin dependencies. Optional integrations are detected at runtime.
